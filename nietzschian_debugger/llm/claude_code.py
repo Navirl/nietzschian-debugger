@@ -174,9 +174,19 @@ def complete(system: str, messages: list[dict[str, str]], model: str) -> str:
     return _run(system, messages, model)
 
 
+# The validator requires a literal '?'. Newer models reached through the CLI
+# alias often phrase the challenge as a command ("Name the field ..."), which
+# fails validation and drops the turn to a canned fallback question. stream() is
+# only used for question generation, so the hint never reaches the judge/summary.
+QUESTION_FORMAT_HINT = (
+    "\n\nFORMAT: your reply must end with exactly one sentence that is a question "
+    "ending in '?'. Never phrase it as a command."
+)
+
+
 def stream(system: str, messages: list[dict[str, str]], model: str, callbacks) -> str:
     try:
-        text = _run(system, messages, model, on_text=callbacks.on_text)
+        text = _run(system + QUESTION_FORMAT_HINT, messages, model, on_text=callbacks.on_text)
         callbacks.on_complete(text)
         return text
     except Exception as error:
