@@ -83,6 +83,11 @@ def configure(spec: Optional[str]) -> None:
         return
     name, _, model = spec.partition(":")
     name = name.lower()
+    if name in ("claude-code", "cc"):
+        from . import claude_code
+        _provider = "claude-code"
+        _model = model or claude_code.DEFAULT_MODEL
+        return
     if name not in _BASE_URLS:
         _provider = None  # treat unknown as an Anthropic model name; don't switch
         return
@@ -128,6 +133,9 @@ def _msgs(system: str, messages: list[dict[str, str]]) -> list[dict[str, str]]:
 
 
 def stream(system: str, messages: list[dict[str, str]], model: str, callbacks) -> str:
+    if _provider == "claude-code":
+        from . import claude_code
+        return claude_code.stream(system, messages, model or _model, callbacks)
     client = _client()
     full = ""
     try:
@@ -151,6 +159,9 @@ def stream(system: str, messages: list[dict[str, str]], model: str, callbacks) -
 
 
 def complete(system: str, messages: list[dict[str, str]], model: str) -> str:
+    if _provider == "claude-code":
+        from . import claude_code
+        return claude_code.complete(system, messages, model or _model)
     client = _client()
     response = client.chat.completions.create(
         model=model or _model,
